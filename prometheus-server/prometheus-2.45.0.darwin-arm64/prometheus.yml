@@ -34,12 +34,7 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:8080"]
 
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-    # Example of a custom path and scheme:
-    # metrics_path: /custom/metrics/path
-    # scheme: https
+    -job_name: "ts_service"
 
-    # If you want to add custom labels to the metrics, you can use the 'labels' field.
-    # labels:
-    #   environment: production
+    static_configs:
+      - targets: ["localhost:3030"]
