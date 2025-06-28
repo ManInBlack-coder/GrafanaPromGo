@@ -23,17 +23,17 @@ services:
       context: ./backend
     container_name: backend
     ports:
-      - "8000:8000"
-    depends_on:
-      - prometheus
+      - "8080:8080"
+   # depends_on:
+    #  - prometheus
 
   ts_service:
     build:
       context: ./TS_service
     container_name: ts_service
     ports:
-      - "3030:3031"
+      - "3030:3030"
     # volumes:
     #   - ./TS_service:/app
-    depends_on:
-      - prometheus
+    #depends_on:
+     # - prometheus
