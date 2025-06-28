@@ -34,6 +34,7 @@ const httpRequestDurationSeconds = new client.Histogram({
 client.collectDefaultMetrics({register});
 
 
+
 app.use(express.json());
 
 //middleware, mis jäglib päringuid 
