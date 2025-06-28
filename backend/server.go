@@ -30,6 +30,7 @@ func main() {
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 
+	
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
