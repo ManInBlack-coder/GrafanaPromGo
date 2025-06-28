@@ -13,7 +13,9 @@ type User struct {
 	Email string `json:"email"`
 }
 
-var users []User
+var users []User = []User{
+	{ID: "1", Username: "john_doe", Email: "john@gmail.com"},
+}
 
 func main() {
  // Initialize a new router

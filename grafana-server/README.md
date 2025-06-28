@@ -42,7 +42,7 @@ Pärast allalaadimist ja lahtipakkimist saad Grafana käivitada:
 1.  **Liigu lahtipakitud Grafana kausta:**
     ```bash
     # Eeldades, et lahtipakitud kausta nimi on 'grafana-10.4.5'
-    cd grafana-10.4.5
+    cd grafana-v10.4.5
     # Asenda 'grafana-10.4.5' õige kausta nimega, kui see peaks erinema.
     ```
 
