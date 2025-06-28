@@ -11,26 +11,26 @@ Prometheuse serveri käivitamiseks oma kohalikus arenduskeskkonnas toimige järg
     cd prometheus-server
     ```
 
-2.  **Laadi alla Prometheus (Apple Silicon / ARM64 versioon):**
+2.  **Laadi alla Prometheus (Linux / AMD64 versioon):**
     * Mine Prometheuse ametlikule allalaadimislehele: [https://prometheus.io/download/](https://prometheus.io/download/)
     * Leia uusim **stabiilne versioon** (nt `v2.45.0`).
-    * Otsi üles `darwin-arm64` (.tar.gz) link ja kopeeri see.
+    * Otsi üles `linux-amd64` (.tar.gz) link ja kopeeri see.
     * Terminalis laadi alla:
         ```bash
-        curl -LO [https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.darwin-arm64.tar.gz](https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.darwin-arm64.tar.gz)
+        curl -LO https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
         # Asenda versiooninumber uusimaga
         ```
 
 3.  **Paki Prometheus lahti:**
     ```bash
-    tar -xvf prometheus-2.45.0.darwin-arm64.tar.gz
+    tar -xvf prometheus-2.45.0.linux-amd64.tar.gz
     # Asenda failinimi õigega
     ```
-    See loob kausta nimega `prometheus-2.45.0.darwin-arm64` (või sarnase) siia kausta.
+    See loob kausta nimega `prometheus-2.45.0.linux-amd64` (või sarnase) siia kausta.
 
 4.  **Kustuta allalaaditud arhiivifail:**
     ```bash
-    rm prometheus-2.45.0.darwin-arm64.tar.gz
+    rm prometheus-2.45.0.linux-amd64.tar.gz
     ```
 
 ## Prometheuse käivitamine
@@ -39,7 +39,7 @@ Pärast allalaadimist ja lahtipakkimist saad Prometheuse käivitada:
 
 1.  **Liigu lahtipakitud Prometheuse kausta:**
     ```bash
-    cd prometheus-2.45.0.darwin-arm64
+    cd prometheus-2.45.0.linux-amd64
     # Asenda versiooninumber õigega
     ```
 
@@ -54,7 +54,7 @@ Pärast allalaadimist ja lahtipakkimist saad Prometheuse käivitada:
 
 ## Konfiguratsioon
 
-Prometheuse konfiguratsioonifail asub lahtipakitud kaustas (`prometheus-2.45.0.darwin-arm64/prometheus.yml`). Saate seda muuta vastavalt oma vajadustele, näiteks sihtmärkide (targets) lisamiseks.
+Prometheuse konfiguratsioonifail asub lahtipakitud kaustas (`prometheus-2.45.0.linux-amd64/prometheus.yml`). Saate seda muuta vastavalt oma vajadustele, näiteks sihtmärkide (targets) lisamiseks.
 
 ---
 
@@ -81,7 +81,7 @@ Prometheuse konfiguratsioonifail asub lahtipakitud kaustas (`prometheus-2.45.0.d
     ```bash
     cd /Users/sass/Documents/GitHub/GrafanaPromGo/
     git add prometheus-server/README.md
-    git commit -m "Add README for Prometheus server setup"
+    git commit -m "Add README for Prometheus server setup (linux-amd64)"
     git push origin main
     ```
 

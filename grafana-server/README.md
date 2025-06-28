@@ -21,7 +21,7 @@ Grafana serveri käivitamiseks oma kohalikus arenduskeskkonnas toimige järgmise
     * Kopeeri pakutud allalaadimise URL (nt `https://dl.grafana.com/oss/release/grafana-10.4.5.darwin-arm64.tar.gz`).
     * Terminalis laadi alla (asenda URL ja versiooninumber uusimaga):
         ```bash
-        curl -LO [https://dl.grafana.com/oss/release/grafana-10.4.5.darwin-arm64.tar.gz](https://dl.grafana.com/oss/release/grafana-10.4.5.darwin-arm64.tar.gz)
+        curl -LO https://dl.grafana.com/oss/release/grafana-10.4.5.darwin-arm64.tar.gz
         ```
 
 3.  **Paki Grafana lahti:**

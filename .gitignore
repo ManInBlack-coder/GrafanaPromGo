@@ -1,10 +1,11 @@
 # Prometheus server files
-prometheus-server/prometheus-2.45.0.darwin-arm64/
+prometheus-server/prometheus-2.45.0.linux-amd64/**
 prometheus-server/data/
 
 # Grafana server files and data
 /grafana-server/grafana-v10.4.5/**
-
+/grafana-server/data/**
+/grafana-server/data/grafana.db/
 
 
 # Downloaded archives

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus-server/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus-server/data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-server/data:/var/lib/grafana
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - prometheus
+
+  ts_service:
+    build:
+      context: ./TS_service
+    container_name: ts_service
+    ports:
+      - "3030:3031"
+    # volumes:
+    #   - ./TS_service:/app
+    depends_on:
+      - prometheus
