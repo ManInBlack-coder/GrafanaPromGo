@@ -1,11 +1,13 @@
-# Ignore the entire extracted Prometheus server folder
+# Prometheus server files
 prometheus-server/prometheus-2.45.0.darwin-arm64/
-
-# Also ignore the Prometheus data directory, in case it's created elsewhere
-# (though it should be inside the above ignored folder by default)
 prometheus-server/data/
 
-# Ignore downloaded archives
+# Grafana server files and data
+/grafana-server/**
+grafana-server/data/
+grafana-server/logs/
+
+# Downloaded archives
 *.tar.gz
 *.zip
 *.dmg
@@ -13,7 +15,7 @@ prometheus-server/data/
 # macOS specific files
 .DS_Store
 
-# Node.js related files (if applicable to your Grafana/Go project)
+# Node.js related files (if applicable to your Go project)
 node_modules/
 npm-debug.log
 .env
