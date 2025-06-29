@@ -49,8 +49,16 @@ sum(rate(http_request_duration_seconds_sum[5m])) / sum(rate(http_request_duratio
 
 ### HTTP päringute arv konkreetsele teele (nt /users)
 ```
+```
 sum(http_requests_total{path="/users"})
 ```
+
+Kui soovid päringut piirata ka kindla hosti (näiteks `instance` või `job` labeli) järgi, lisa see label filtrisse. Näiteks, kui kasutad `instance` labelit:
+
+```
+sum(http_requests_total{path="/users", instance="HOST_NIMI_VÕI_IP:PORT"})
+```
+Asenda `HOST_NIMI_VÕI_IP:PORT` vastava väärtusega.
 
 ### Node.js CPU kasutus
 ```
