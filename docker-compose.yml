@@ -5,8 +5,10 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
+      # Veendu, et sul on prometheus.yml fail selles kaustas
       - ./prometheus-server/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./prometheus-server/data:/prometheus
+      # Andmete püsivaks salvestamiseks
+      - prometheus_data:/prometheus
     command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
     ports:
       - "9090:9090"
@@ -17,35 +19,86 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana-server/data:/var/lib/grafana
+      # Grafana andmete püsivaks salvestamiseks
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus # Grafana sõltub Prometheuse käivitamisest
 
-  backend:
+  backend: # Sinu Go backend
     build:
       context: ./backend
-    container_name: backend
+    container_name: go_backend # Soovitatav kasutada selgemat nime, nt. go_backend
     ports:
-      - "8081:80"
-   # depends_on:
-    #  - prometheus
+      - "8081:80" # Kui Go rakendus kuulab pordil 80
+    depends_on:
+      - mysql # Go backend vajab MySQL ühendust
+      - redis # Go backend vajab Redis ühendust
+    environment:
+      # Need keskkonnamuutujad on vajalikud, et Go rakendus saaks andmebaasidega ühenduda
+      MYSQL_HOST: mysql
+      MYSQL_USER: user
+      MYSQL_PASSWORD: YOUR_MYSQL_PASSWORD # SISESTA OMA PÄRIS PAROOL SIIN
+      MYSQL_DATABASE: taxi_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
-  ts_service:
+  ts_service: # Sinu TypeScript Express backend
     build:
       context: ./TS_service
-    container_name: ts_service
+    container_name: ts_backend # Soovitatav kasutada selgemat nime, nt. ts_backend
     ports:
-      - "3030:3030"
+      - "3030:3030" # Kui Express rakendus kuulab pordil 3030
     # volumes:
-    #   - ./TS_service:/app
-    #depends_on:
-     # - prometheus
+    #   - ./TS_service:/app # Kui teed arendust ja tahad koodimuudatusi kohe näha, siis see rida on hea
+    depends_on:
+      - mysql # TypeScript backend vajab MySQL ühendust
+      - redis # TypeScript backend vajab Redis ühendust
+      - backend # Parandatud: viitab teenuse nimele, mitte container_name'ile
+    environment:
+      # Need keskkonnamuutujad on vajalikud, et Express rakendus saaks andmebaasidega ühenduda
+      MYSQL_HOST: mysql
+      MYSQL_USER: user
+      MYSQL_PASSWORD: YOUR_MYSQL_PASSWORD # SISESTA OMA PÄRIS PAROOL SIIN
+      MYSQL_DATABASE: taxi_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GO_BACKEND_URL: http://backend:80 # Parandatud: viitab teenuse nimele
 
-
-  client:
+  client: # Sinu esiosa (frontend)
     build:
       context: ./client
     container_name: client
     ports:
-      - "8080:80"
-   # depends_on:
-    #  - ts_service
-     # - backend
+      - "8080:80" # Kui esiosa jookseb pordil 80
+    depends_on:
+      - ts_service # Parandatud: viitab teenuse nimele
+      # - go_backend # Kui klient suhtleb otse Go backendiga (nt. WebSocketi kaudu)
+
+  mysql: # MySQL andmebaasi teenus
+    image: mysql:8.0 # Kasuta soovitud MySQL versiooni
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: YOUR_ROOT_PASSWORD # SISESTA OMA PÄRIS ROOT PAROOL SIIN
+      MYSQL_DATABASE: taxi_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: YOUR_MYSQL_PASSWORD # SISESTA OMA PÄRIS PAROOL SIIN
+    volumes:
+      # Andmete püsivaks salvestamiseks. Kasutame Docker'i hallatud "named volume'it"
+      - mysql_data:/var/lib/mysql
+
+  redis: # Redis andmebaasi teenus
+    image: redis:latest
+    ports:
+      - "6379:6379" # Valikuline: kui tahad väljast ligi pääseda
+    container_name: redis
+    volumes:
+      # Andmete püsivaks salvestamiseks. Kasutame Docker'i hallatud "named volume'it"
+      # See on parem kui ./redis/data, et vältida projekti kausta risustamist
+      - redis_data:/data
+
+# Defineerime Docker'i hallatud "named volumes", mis hoiavad andmeid püsivalt
+volumes:
+  prometheus_data:
+  grafana_data:
+  mysql_data:
+  redis_data:
