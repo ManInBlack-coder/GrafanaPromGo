@@ -17,6 +17,6 @@ WORKDIR /app
 
 COPY --from=builder /go-backend /app/go-backend
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["./go-backend"] 
