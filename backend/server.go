@@ -1,105 +1,136 @@
 package main
 
 import (
-    "encoding/json"
-    "log"
-    "net/http"
-    "time"
 
-    "github.com/gorilla/mux"
-    "github.com/prometheus/client_golang/prometheus"
-    "github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/ManInBlack-coder/backend-project/config"
+	redisclient "github.com/ManInBlack-coder/backend-project/redis-client"
+	"github.com/ManInBlack-coder/backend-project/simulator"
+	"github.com/ManInBlack-coder/backend-project/models" 
+
 )
 
-// defining prometheus metrics 
-
+// prometheus metrics for taxi simulation service
 var (
-	httpRequestsTotal = prometheus.NewCounterVec(
+	taxiUpdatesTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
+			Name: "taxi_updates_total",
+			Help: "Total number of taxi location updates published to Redis Pub/Sub",
 		},
-		[]string{"method", "route", "code"},
+	)
+	activeSimulatedTaxis = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "active_simulated_taxis",
+			Help: "Current number of active simulated taxis",
+		},
+	)
+	taxiLocationUpdateDuration = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "taxi_location_update_duration_seconds",
+			Help:    "Duration of a single taxi location update operation (Redis HSET and PUBLISH).",
+			Buckets: prometheus.DefBuckets,
+		},
 	)
 
-	// requests histogram to track request duration
-	httpRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "http_request_duration_seconds",
-			Help: "Duration of HTTP requests in seconds",
-			Buckets: prometheus.DefBuckets, // default buckets  
+	taxiStatusChangeTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "taxi_status_changes_total",
+			Help: "Total number of taxi status changes.",
 		},
-		[]string{"method", "route"},
+		[]string{"status"},
 	)
 )
 
 func init() {
-	// Register the metrics to Prometheus registry
-	prometheus.MustRegister(httpRequestsTotal)
-	prometheus.MustRegister(httpRequestDuration)
-}
+	//registers metrics to prometheus register
+	prometheus.MustRegister(taxiUpdatesTotal)
+	prometheus.MustRegister(activeSimulatedTaxis)
+	prometheus.MustRegister(taxiLocationUpdateDuration)
+	prometheus.MustRegister(taxiStatusChangeTotal)
+}	
 
-
-
-type User struct {
-	ID string `json:"id"`
-	Username string `json:"username"`
-	Email string `json:"email"`
-}
-
-var users []User = []User{
-	{ID: "1", Username: "john_doe", Email: "john@gmail.com"},
-}
 
 func main() {
- // Initialize a new router
- router := mux.NewRouter()
-
- // add Prometheus metric endpoint 
- router.Handle("/metrics", promhttp.Handler())
-
- // added metric collect middleware
- router.HandleFunc("/users", trackMetrics(getUsers, "/users", "GET")).Methods("GET")
- router.HandleFunc("/users", trackMetrics(createUser, "/users", "GET")).Methods("POST")
-
-
- log.Fatal(http.ListenAndServe(":8080", router))
-}
-
-func trackMetrics(handler http.HandlerFunc, path, method string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now() // reqeust start time
-		lw := &loggingResponseWriter{ResponseWriter: w} // custom response writer to capture status code
-
-		handler.ServeHTTP(lw,r) // start handling the request
-		duration := time.Since(start).Seconds() // calculate duration
-		httpRequestDuration.WithLabelValues(path, method,).Observe(duration)
-
-		httpRequestsTotal.WithLabelValues(method, path, http.StatusText(lw.statusCode)).Inc()
+	cfg := config.LoadConfig()
+	// starting redis and simulation 
+	rc, err := redisclient.NewRedisClient(cfg.RedisAddr)
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
 	}
+	defer rc.Close()
+
+	metricChan := make(chan simulator.MetricUpdate, 100)
+
+	// simConfig := &simulator.Config{
+	// 	NumTaxis: cfg.NumTaxis,
+	// 	SimulatorIntervalMs: cfg.SimulatorIntervalMs,
+	// }
+
+	cancelSim, err := simulator.StartTaxiSimulator(cfg, rc, metricChan)
+	if err != nil {
+		log.Fatalf("Failed to start taxi simulator: %v", err)
+	}
+	defer cancelSim()
+
+	log.Println("Taxi simulator started. Publishing metrics to /metrics endpoint.")
+
+	activeSimulatedTaxis.Set(float64(cfg.NumTaxis))
+
+	// starts prometheus metrics handler
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		server := &http.Server{
+			Addr: ":8081",
+		}
+		log.Printf("Prometheus metrics endpoint listening on %s", server.Addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Could not start Prometheus metrics server: %v", err)
+
+		}
+	}()
+
+	// that goroutine listens metrics channels and updates metrics 
+	go func() {
+		for update := range metricChan {
+			switch update.Type {
+			case simulator.MetricTypeLocationUpdate:
+				taxiUpdatesTotal.Inc()
+				taxiLocationUpdateDuration.Observe(update.Value)
+			case simulator.MetricTypeStatusChange:
+				// Veendu, et update.Data on õiget tüüpi (DriverStatus)
+				if status, ok := update.Data.(models.DriverStatus); ok {
+					taxiStatusChangeTotal.WithLabelValues(string(status)).Inc()
+				} else {
+					log.Printf("Invalid data type for status change metric: %T", update.Data)
+				}
+			case simulator.MetricTypeTaxiCount:
+				activeSimulatedTaxis.Set(update.Value)
+			default:
+				log.Printf("Unknown metric type: %s", update.Type)
+			}
+		}
+	}()
+
+
+	// elegant closing
+
+	sigChan := make(chan os.Signal,1)
+	signal.Notify(sigChan,syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan 
+
+	log.Println("Shutting down gracefully...")
+	close(metricChan)
+	log.Println("Simulator goroutines are stopping...")
+	time.Sleep(1 * time.Second)
+	log.Println("Application exited.")
+
 }
-
-// improves getting the status code back of the response
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func(lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code 
-	lrw.ResponseWriter.WriteHeader(code)
-}
-
-func getUsers(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(users)
-
-	
-}
-
-func createUser(w http.ResponseWriter, r *http.Request) {
-	var newUser User
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
-	users = append(users, newUser)
-	json.NewEncoder(w).Encode(newUser)
-}
-
