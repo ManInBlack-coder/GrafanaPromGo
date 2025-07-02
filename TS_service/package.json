@@ -19,7 +19,8 @@
     "ws": "^8.18.3"
   },
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "build": "tsc"
+    "build": "npx tsc",
+    "start": "node dist/server.js",
+    "dev": "npx ts-node-dev --respawn src/server.ts"
   }
 }
