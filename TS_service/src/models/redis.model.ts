@@ -37,7 +37,7 @@ export const RedisModel = {
 
 
 
-    async getNearbyDrivers(latitude:number, longitude:number): Promise<TaxiLocation[]> {
+    async getNearbyDrivers(latitude:number, longitude:number, radiusKm:number): Promise<TaxiLocation[]> {
         const availableDrivers: TaxiLocation[] = [];
 
         const pattern = `${DRIVER_LOCATION_KEY_PREFIX}*:location`;

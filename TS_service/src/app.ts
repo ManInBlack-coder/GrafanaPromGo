@@ -1,45 +1,37 @@
-// ts_service/src/app.ts
+// src/app.ts
 import express from 'express';
-import client from 'prom-client'; // Prometheus client library
+import { createServer } from 'http';
+import apiRoutes from './routes/index.route';
+import { config } from './config';
+import { WebsocketService } from './services/websocket.service';
+import { initializeRedis } from './services/redisPubSub.service';
 
-// --- Express App Setup ---
-const app = express();
+export const app = express();
+export const httpServer = createServer(app); // Ekspordime, et server.ts saaks kasutada
 
-// --- Prometheus Metrics Setup ---
-// These metrics are defined here because they are part of the *application* behavior
-export const register = new client.Registry(); // Export the registry to be used in server.ts for metrics endpoint
+// Expressi middleware
+app.use(express.json()); // JSON-i parsimiseks
 
-export const websocketConnections = new client.Gauge({
-    name: 'websocket_connections_total',
-    help: 'Total number of active WebSocket connections.',
-    registers: [register],
-});
+// WebSocketService initsialiseerimine
+const wsService = new WebsocketService(httpServer);
 
-export const redisPubSubMessagesTotal = new client.Counter({
-    name: 'redis_pubsub_messages_total',
-    help: 'Total number of messages received from Redis Pub/Sub.',
-    labelNames: ['channel'],
-    registers: [register],
-});
+// Redise ja Pub/Sub teenuste initsialiseerimine
+initializeRedis(wsService)
+    .then(() => console.log('Redis services initialized.'))
+    .catch(err => {
+        console.error('Failed to initialize Redis services:', err);
+        process.exit(1);
+    });
 
-client.collectDefaultMetrics({ register }); // Collect default Node.js metrics
+// API ruuterid
+app.use('/api', apiRoutes);
 
-// --- Express Middleware (e.g., JSON parsing, CORS, logging) ---
-app.use(express.json()); // For parsing application/json
-
-// --- Express Routes ---
+// Juurmarsruut
 app.get('/', (req, res) => {
-    res.send('TypeScript Express Backend is running (configured in app.ts)!');
+    res.send('TypeScript Express Backend is running with MVC and WebSockets!');
 });
 
-// Prometheus metrics endpoint (exposed here because it's an app route)
-app.get('/metrics', async (req, res) => {
-    res.setHeader('Content-Type', register.contentType);
-    res.end(await register.metrics());
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
-
-// Add your API routes here later:
-// import apiRoutes from './routes';
-// app.use('/api', apiRoutes);
-
-export default app; // Export the configured Express app

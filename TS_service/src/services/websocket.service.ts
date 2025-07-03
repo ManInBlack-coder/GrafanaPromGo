@@ -8,7 +8,7 @@ interface TaxiUpdateMessage {
     status: string;
 }
 
-export class WebsocketSerivce {
+export class WebsocketService {
     private wss: WebSocketServer;
 
     constructor(httpServer: HttpServer) {
