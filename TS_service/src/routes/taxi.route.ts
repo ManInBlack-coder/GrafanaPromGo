@@ -2,8 +2,8 @@
 import { Router } from 'express';
 import { TaxiController } from '../controllers/taxi.controller';
 
-const router = Router();
+const taxiRoutes = Router();
 
-router.get('/nearby', TaxiController.getNearbyTaxis);
+taxiRoutes.get('/nearby', TaxiController.getNearbyTaxis);
 
-export default router;
+export default taxiRoutes;

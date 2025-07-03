@@ -13,4 +13,6 @@ export const config = {
     mysqlUser: process.env.MYSQL_USER || 'root',
     mysqlPassword: process.env.MYSQL_ROOT_PASSWORD || 'your_mysql_password',
     mysqlDatabase: process.env.MYSQL_DATABASE || 'taxi_db',
+
 };
+
